@@ -1,0 +1,1810 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>網頁式生管排程表（2026/11/24）</title>
+  <style>
+    :root {
+      --bg: #eef2f6;
+      --surface: #ffffff;
+      --border: #94a3b8;
+      --border-strong: #334155;
+      --header-bg: #1e293b;
+      --header-text: #ffffff;
+      --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+      --success: #15803d;
+      --success-hover: #166534;
+      --text: #0f172a;
+      --muted: #475569;
+      --st-done-bg: #dcfce7;
+      --st-done-fg: #166534;
+      --st-prod-bg: #dbeafe;
+      --st-prod-fg: #1e40af;
+      --st-wait-bg: #fef3c7;
+      --st-wait-fg: #92400e;
+      --st-out-bg: #ede9fe;
+      --st-out-fg: #5b21b6;
+      --st-hold-bg: #fee2e2;
+      --st-hold-fg: #991b1b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .sheet-box {
+      max-width: 1740px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      padding: 16px 20px 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+
+    .toolbar-left, .toolbar-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar input, .toolbar select {
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      font: inherit;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: #e2e8f0; }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover { background: var(--primary-hover); }
+
+    .btn-save {
+      background: var(--success);
+      color: #fff;
+      border-color: var(--success);
+    }
+
+    .btn-save:hover { background: var(--success-hover); }
+
+    .save-status {
+      font-size: 12px;
+      color: var(--success);
+      font-weight: 600;
+      padding: 0 4px;
+    }
+
+    .sheet-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid var(--border-strong);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .sheet-top h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .sheet-top .meta-note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .date-box {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .date-box input {
+      font: inherit;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px 6px;
+      width: 112px;
+      text-align: center;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table.sched-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      min-width: 1480px;
+    }
+
+    .sched-table th, .sched-table td {
+      border: 1px solid var(--border);
+      padding: 5px 6px;
+      vertical-align: middle;
+      word-break: break-word;
+      line-height: 1.38;
+    }
+
+    .sched-table thead th {
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 700;
+      text-align: center;
+      font-size: 12.5px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .sort-th {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .sort-th:hover {
+      background: #334155 !important;
+    }
+
+    .sort-ind {
+      font-size: 11px;
+      margin-left: 2px;
+      color: #93c5fd;
+    }
+
+    .sched-table tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .sched-table tbody tr:hover {
+      background: #eff6ff;
+    }
+
+    .tc { text-align: center; }
+    .tr { text-align: right; font-variant-numeric: tabular-nums; }
+    .mono { font-family: Consolas, "Courier New", monospace; font-size: 12px; }
+
+    .dur-cell {
+      font-weight: 700;
+      color: #1e3a8a;
+    }
+
+    .date-edit-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .date-text-input {
+      width: 100%;
+      padding: 3px 4px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      font: inherit;
+      font-size: 12px;
+      text-align: center;
+      color: inherit;
+    }
+
+    .date-text-input:hover,
+    .date-text-input:focus {
+      border-color: #93c5fd;
+      background: #fffbeb;
+      outline: none;
+    }
+
+    .date-picker-mini {
+      width: 100%;
+      max-width: 96px;
+      padding: 1px 2px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      font-size: 10.5px;
+      color: var(--muted);
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .status-cell-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .b-完工 { background: var(--st-done-bg); color: var(--st-done-fg); }
+    .b-生產 { background: var(--st-prod-bg); color: var(--st-prod-fg); }
+    .b-待通知, .b-待通知生產, .b-投單 { background: var(--st-wait-bg); color: var(--st-wait-fg); }
+    .b-委外中 { background: var(--st-out-bg); color: var(--st-out-fg); }
+    .b-暫停待通知 { background: var(--st-hold-bg); color: var(--st-hold-fg); }
+
+    .status-select {
+      width: 100%;
+      padding: 2px 4px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 11.5px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .status-select:focus {
+      outline: 2px solid var(--primary);
+      border-color: var(--primary);
+    }
+
+    .status-pill-select {
+      width: 100%;
+      max-width: 98px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #cbd5e1;
+      font-family: inherit;
+      font-size: 11.5px;
+      font-weight: 700;
+      line-height: 1.25;
+      text-align: center;
+      text-align-last: center;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-pill-select:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .note-area {
+      white-space: pre-line;
+      font-size: 12px;
+      min-height: 24px;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .note-warn {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    [data-locked-f] {
+      color: #1e293b;
+      user-select: text;
+    }
+
+    [contenteditable="true"]:focus {
+      outline: 2px solid var(--primary);
+      background: #fffbeb;
+    }
+
+    .btn-del {
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 2px 5px;
+    }
+
+    .btn-del:hover { color: #dc2626; }
+
+    .sheet-bottom {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 14px;
+    }
+
+    .summary-table, .sign-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .summary-table th, .summary-table td,
+    .sign-table th, .sign-table td {
+      border: 1px solid var(--border-strong);
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    .summary-table th, .sign-table th {
+      background: #e2e8f0;
+      font-weight: 700;
+    }
+
+    .summary-table td input {
+      width: 82px;
+      text-align: right;
+      font: inherit;
+      font-weight: 700;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+
+    .rate-val {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .sign-table td {
+      height: 44px;
+    }
+
+    dialog {
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 0;
+      width: min(740px, calc(100vw - 24px));
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+    }
+
+    dialog::backdrop { background: rgba(15, 23, 42, 0.45); }
+
+    .dlg-head {
+      padding: 12px 16px;
+      background: var(--header-bg);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dlg-head h2 { margin: 0; font-size: 16px; }
+
+    .dlg-grid {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .dlg-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .dlg-grid label.full { grid-column: 1 / -1; }
+    .dlg-grid label.span2 { grid-column: span 2; }
+
+    .dlg-grid input, .dlg-grid select, .dlg-grid textarea {
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font: inherit;
+      font-weight: 400;
+    }
+
+    .dlg-foot {
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .import-body {
+      padding: 14px 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .import-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .import-panel {
+      display: none;
+      gap: 8px;
+    }
+
+    .import-panel.active {
+      display: grid;
+    }
+
+    .import-help {
+      font-size: 12px;
+      color: var(--muted);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      line-height: 1.5;
+    }
+
+    .import-options {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      font-size: 12.5px;
+    }
+
+    .import-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .snapshot-list {
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 4px 2px;
+    }
+
+    .snapshot-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .snapshot-item:hover {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .snapshot-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .snapshot-time {
+      font-weight: 700;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .snapshot-sub {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    .snapshot-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .holiday-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 190px;
+      overflow-y: auto;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .holiday-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+    }
+
+    .holiday-chip button {
+      border: none;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      padding: 0 2px;
+      font-weight: 700;
+    }
+
+    .holiday-chip button:hover { color: #dc2626; }
+
+    @media print {
+      body { padding: 0; background: #fff; }
+      .sheet-box { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      .toolbar, .no-print, .date-picker-mini, .status-select { display: none !important; }
+      .date-box input, .summary-table td input, .date-text-input { border: none; padding: 0; width: auto; }
+      .sched-table th, .sched-table td { font-size: 11px; padding: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet-box">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input id="kwInput" type="search" placeholder="搜尋製令單號 / 品號 / 品名 / 規格 / 客戶 / 備註...">
+        <select id="lineSel">
+          <option value="">全部線別</option>
+          <option value="整機">整機</option>
+          <option value="機體">機體</option>
+          <option value="儲氣桶">儲氣桶</option>
+          <option value="零件">零件</option>
+        </select>
+        <select id="statusSel">
+          <option value="">全部現場進度</option>
+          <option value="完工">完工</option>
+          <option value="生產">生產</option>
+          <option value="待通知">待通知</option>
+          <option value="待通知生產">待通知生產</option>
+          <option value="投單">投單</option>
+          <option value="委外中">委外中</option>
+          <option value="暫停待通知">暫停待通知</option>
+        </select>
+        <select id="sortDirSel" title="開工日期排序">
+          <option value="asc">開工日期：由舊到新（升冪）</option>
+          <option value="desc">開工日期：由新到舊（降冪）</option>
+        </select>
+        <button id="clearBtn" class="btn" type="button">清除篩選</button>
+      </div>
+      <div class="toolbar-right">
+        <button id="saveNowBtn" class="btn btn-save" type="button" title="儲存目前排程至瀏覽器">💾 儲存目前排程</button>
+        <button id="loadSavedBtn" class="btn btn-primary" type="button" title="載入已儲存的瀏覽器排程或 JSON 備份檔">📂 讀取已存排程</button>
+        <button id="downloadJsonBtn" class="btn" type="button" title="下載排程 JSON 備份檔">⬇ 下載排程檔</button>
+        <button id="openHolidayBtn" class="btn" type="button">📅 國定假日設定</button>
+        <button id="openImportBtn" class="btn" type="button">↥ 匯入資料</button>
+        <button id="exportCsvBtn" class="btn" type="button">⇩ 匯出 CSV</button>
+        <button id="addBtn" class="btn btn-primary" type="button">＋ 新增排程</button>
+        <button class="btn" type="button" onclick="window.print()">列印 / 存成 PDF</button>
+      </div>
+    </div>
+
+    <div class="sheet-top">
+      <div>
+        <h1>生管排程表</h1>
+        <div class="meta-note">
+          工期自動計算為「預計完工日 − 開工日（含起迄工作天，排除週末與國定假日）」；現場進度與備註已拆分為獨立可修改欄位。
+          <span id="saveStatus" class="save-status"></span>
+        </div>
+      </div>
+      <div class="date-box">
+        日期：<input id="sheetDate" type="text" value="2026/11/24">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="sched-table">
+        <colgroup>
+          <col style="width: 54px;">
+          <col style="width: 98px;">
+          <col style="width: 102px;">
+          <col style="width: 98px;">
+          <col style="width: 130px;">
+          <col style="width: 110px;">
+          <col style="width: 106px;">
+          <col style="width: 195px;">
+          <col style="width: 98px;">
+          <col style="width: 66px;">
+          <col style="width: 106px;">
+          <col style="width: 215px;">
+          <col style="width: 62px;">
+          <col class="no-print" style="width: 38px;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th title="完工日減掉開工日（排除週末與國定假日）">工期</th>
+            <th id="sortStartTh" class="sort-th" title="點擊切換開工日期升冪/降冪">開工日<span id="startSortInd" class="sort-ind">▲</span></th>
+            <th>預計完工<br>(入庫日)</th>
+            <th>產銷日<br><span style="font-weight:400;font-size:11px;">(銷貨日)</span></th>
+            <th>製令單號</th>
+            <th>產品品號</th>
+            <th>品名</th>
+            <th>規格</th>
+            <th>客戶名稱</th>
+            <th>預計產量</th>
+            <th>現場進度</th>
+            <th>備註</th>
+            <th>線別</th>
+            <th class="no-print">刪</th>
+          </tr>
+        </thead>
+        <tbody id="schedBody"></tbody>
+      </table>
+    </div>
+
+    <div class="sheet-bottom">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>目前筆數</th>
+            <th>預計產量合計</th>
+            <th>本週應入庫台數</th>
+            <th>本週實入庫台數</th>
+            <th>達成率</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="cntCell">0</td>
+            <td id="sumCell">0</td>
+            <td><input id="expIn" type="number" min="0" value="0"></td>
+            <td><input id="actIn" type="number" min="0" value="0"></td>
+            <td id="rateCell" class="rate-val">0.0%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="sign-table">
+        <thead>
+          <tr>
+            <th>經辦</th>
+            <th>組長</th>
+            <th>經理</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td id="signClerk" contenteditable="true"></td>
+            <td id="signLeader" contenteditable="true"></td>
+            <td id="signManager" contenteditable="true"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 新增排程視窗 -->
+  <dialog id="addDlg">
+    <form id="addForm" method="dialog">
+      <div class="dlg-head">
+        <h2>新增排程項目</h2>
+        <button id="closeDlgBtn" class="btn" type="button" style="padding:2px 8px;">✕</button>
+      </div>
+      <div class="dlg-grid">
+        <label>開工日<input name="startDate" placeholder="例如：12月5日 或 2026-12-05"></label>
+        <label>預計完工(入庫日)<input name="endDate" placeholder="例如：12月8日 或 2026-12-08"></label>
+        <label>產銷日（銷貨日）<input name="salesDate" placeholder="例如：12月10日 或 2026-12-10"></label>
+        <label>製令單號<input name="woNo" placeholder="例如：5120-20261124001"></label>
+        <label>產品品號<input name="partNo" placeholder="例如：CDR0175J12E"></label>
+        <label>品名<input name="partName" placeholder="例如：空壓機"></label>
+        <label class="span2">規格<input name="spec" placeholder="例如：DR-175-22,220V,50HZ,1PH"></label>
+        <label>客戶名稱<input name="customer" placeholder="例如：內銷 / 印尼"></label>
+        <label>預計產量<input name="qty" type="number" min="0" value="1"></label>
+        <label>現場進度
+          <select name="status">
+            <option value="生產">生產</option>
+            <option value="完工">完工</option>
+            <option value="待通知">待通知</option>
+            <option value="待通知生產">待通知生產</option>
+            <option value="投單">投單</option>
+            <option value="委外中">委外中</option>
+            <option value="暫停待通知">暫停待通知</option>
+          </select>
+        </label>
+        <label>線別
+          <select name="line">
+            <option value="整機">整機</option>
+            <option value="機體">機體</option>
+            <option value="儲氣桶">儲氣桶</option>
+            <option value="零件">零件</option>
+          </select>
+        </label>
+        <label class="full">備註說明<textarea name="note" rows="3" placeholder="輸入備註內容（工期將依開工日與完工日自動計算）..."></textarea></label>
+      </div>
+      <div class="dlg-foot">
+        <button id="cancelDlgBtn" class="btn" type="button">取消</button>
+        <button class="btn btn-primary" type="submit">新增</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 讀取已存排程視窗 -->
+  <dialog id="loadDlg">
+    <div class="dlg-head">
+      <h2>讀取已儲存的排程（時間節點）</h2>
+      <button id="closeLoadBtn" class="btn" type="button" style="padding:2px 8px;">✕</button>
+    </div>
+    <div class="import-body">
+      <div id="localSavedInfo" class="import-help"></div>
+      <div style="font-weight:700; font-size:12.5px;">已儲存的時間節點（點選「讀取」即可還原）：</div>
+      <div id="snapshotList" class="snapshot-list"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+        <button id="restoreLocalBtn" class="btn btn-save" type="button">讀取最新自動儲存</button>
+        <label class="btn" style="cursor:pointer;">
+          選擇排程 JSON 檔
+          <input id="quickJsonFileInput" type="file" accept=".json" style="display:none;">
+        </label>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button id="cancelLoadBtn" class="btn" type="button">關閉</button>
+    </div>
+  </dialog>
+
+  <!-- 國定假日設定視窗 -->
+  <dialog id="holidayDlg">
+    <div class="dlg-head">
+      <h2>國定假日管理（計算工期時自動排除）</h2>
+      <button id="closeHolidayBtn" class="btn" type="button" style="padding:2px 8px;">✕</button>
+    </div>
+    <div class="import-body">
+      <div class="import-help">
+        工期計算規則：從「開工日」至「預計完工日」（含首尾），自動排除<strong>週六、週日</strong>以及下列<strong>國定假日</strong>（同一天開工與完工計為 <strong>1D</strong>）。
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input id="newHolidayDate" type="date" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px;">
+        <input id="newHolidayName" type="text" placeholder="假日名稱（例如：行憲紀念日）" style="padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; flex:1;">
+        <button id="addHolidayBtn" class="btn btn-primary" type="button">＋ 新增假日</button>
+        <button id="resetHolidayBtn" class="btn" type="button">還原預設假日</button>
+      </div>
+      <div id="holidayList" class="holiday-list"></div>
+    </div>
+    <div class="dlg-foot">
+      <button id="doneHolidayBtn" class="btn btn-primary" type="button">完成並套用</button>
+    </div>
+  </dialog>
+
+  <!-- 匯入資料視窗 -->
+  <dialog id="importDlg">
+    <form id="importForm" method="dialog">
+      <div class="dlg-head">
+        <h2>匯入生管排程資料</h2>
+        <button id="closeImportBtn" class="btn" type="button" style="padding:2px 8px;">✕</button>
+      </div>
+      <div class="import-body">
+        <div class="import-tabs">
+          <button id="tabFileBtn" class="btn tab-btn active" type="button">選擇 CSV / JSON 檔案</button>
+          <button id="tabPasteBtn" class="btn tab-btn" type="button">貼上 CSV / Excel 複製內容</button>
+        </div>
+
+        <div id="panelFile" class="import-panel active">
+          <input id="importFileInput" type="file" accept=".csv,.json,.txt">
+          <div class="import-help">
+            支援 <strong>.csv</strong>（建議含標題列：工期,開工日,預計完工(入庫日),產銷日,製令單號,產品品號,品名,規格,客戶名稱,預計產量,現場進度,備註,線別）或先前儲存下載的 <strong>.json</strong> 排程檔。
+          </div>
+        </div>
+
+        <div id="panelPaste" class="import-panel">
+          <textarea id="importPasteText" rows="7" placeholder="可直接從 Excel 選取儲存格複製後貼上（Tab 分隔），或貼上逗號分隔（CSV）資料..."></textarea>
+          <div class="import-help">
+            支援 Excel 複製貼上（Tab 分隔）與 CSV 格式；若第一列包含「製令單號」或「產品品號」等標題字樣，系統會自動略過標題列。
+          </div>
+        </div>
+
+        <div class="import-options">
+          <span>匯入方式：</span>
+          <label><input type="radio" name="importMode" value="append" checked> 附加在現有排程後面</label>
+          <label><input type="radio" name="importMode" value="replace"> 取代目前全部排程</label>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button id="cancelImportBtn" class="btn" type="button">取消</button>
+        <button class="btn btn-primary" type="submit">確認匯入</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const STORAGE_KEY = "web_schedule_1111_2_v7";
+    const META_STORAGE_KEY = "web_schedule_meta_v7";
+    const HOLIDAY_STORAGE_KEY = "web_schedule_holidays_v7";
+    const SNAPSHOT_STORAGE_KEY = "web_schedule_snapshots_v7";
+
+    const StatusModule = (() => {
+      const OPTIONS = ["待通知", "待通知生產", "投單", "生產", "委外中", "完工", "暫停待通知"];
+      const STYLE_MAP = {
+        "完工": { bg: "#dcfce7", fg: "#166534", border: "#86efac" },
+        "生產": { bg: "#dbeafe", fg: "#1e40af", border: "#93c5fd" },
+        "待通知": { bg: "#fef3c7", fg: "#92400e", border: "#fcd34d" },
+        "待通知生產": { bg: "#fef3c7", fg: "#92400e", border: "#fcd34d" },
+        "投單": { bg: "#fef3c7", fg: "#92400e", border: "#fcd34d" },
+        "委外中": { bg: "#ede9fe", fg: "#5b21b6", border: "#c4b5fd" },
+        "暫停待通知": { bg: "#fee2e2", fg: "#991b1b", border: "#fca5a5" }
+      };
+      function getStyle(status) {
+        return STYLE_MAP[status] || { bg: "#f1f5f9", fg: "#334155", border: "#cbd5e1" };
+      }
+      function renderCompactSelect(rowIndex, statusVal) {
+        const current = String(statusVal ?? "").trim();
+        const list = OPTIONS.includes(current) || !current ? OPTIONS : [current, ...OPTIONS];
+        const st = getStyle(current);
+        const optsHtml = [
+          `<option value="" ${current === "" ? "selected" : ""}>（空白）</option>`,
+          ...list.map((opt) => `<option value="${esc(opt)}" ${opt === current ? "selected" : ""}>${esc(opt)}</option>`)
+        ].join("");
+        return `
+          <select
+            class="status-pill-select"
+            data-status-module-select="${rowIndex}"
+            style="background:${st.bg}; color:${st.fg}; border-color:${st.border};"
+            aria-label="修改現場進度"
+          >
+            ${optsHtml}
+          </select>
+        `;
+      }
+      function bindEvents(container, onChange) {
+        container.querySelectorAll("[data-status-module-select]").forEach((sel) => {
+          sel.addEventListener("change", () => {
+            const idx = Number(sel.dataset.statusModuleSelect);
+            onChange(idx, sel.value);
+          });
+        });
+      }
+      return { OPTIONS, getStyle, renderCompactSelect, bindEvents };
+    })();
+
+    const DEFAULT_HOLIDAYS = [
+      { date: "2026-09-25", name: "中秋節" },
+      { date: "2026-09-28", name: "教師節" },
+      { date: "2026-10-09", name: "國慶日補假" },
+      { date: "2026-10-10", name: "國慶日" },
+      { date: "2026-10-25", name: "臺灣光復節" },
+      { date: "2026-10-26", name: "臺灣光復節補假" },
+      { date: "2026-12-25", name: "行憲紀念日" },
+      { date: "2027-01-01", name: "元旦" },
+      { date: "2027-02-05", name: "農曆除夕前一日" },
+      { date: "2027-02-06", name: "農曆除夕" },
+      { date: "2027-02-07", name: "春節初一" },
+      { date: "2027-02-08", name: "春節初二" },
+      { date: "2027-02-09", name: "春節初三" },
+      { date: "2027-02-10", name: "春節補假" },
+      { date: "2027-02-28", name: "和平紀念日" },
+      { date: "2027-03-01", name: "和平紀念日補假" },
+      { date: "2027-04-04", name: "兒童節" },
+      { date: "2027-04-05", name: "清明節" },
+      { date: "2027-04-06", name: "兒童節補假" },
+      { date: "2027-05-01", name: "勞動節" }
+    ];
+
+    const DEFAULT_ROWS = [
+      { duration: "2D", startDate: "11月23日", endDate: "11月24日", salesDate: "11月30日", woNo: "5120-20261116002", partNo: "CSK0101Y001", partName: "空壓機", spec: "SK-101,60HZ,110V", customer: "內銷", qty: 2, status: "完工", note: "", line: "整機" },
+      { duration: "1D", startDate: "11月25日", endDate: "11月25日", salesDate: "11月30日", woNo: "5120-20261116006", partNo: "CSVP201Y000", partName: "空壓機附馬達", spec: "SVP-201,380V/60HZ/3PH,附電磁開關", customer: "內銷(直承)", qty: 1, status: "生產", note: "「欠電磁開關(11/24)", line: "整機" },
+      { duration: "1D", startDate: "11月17日", endDate: "11月17日", salesDate: "11月30日", woNo: "5110-20261111001", partNo: "CDR0175L12E", partName: "機體組合", spec: "DR-175,50HZ,220V,1PH,4P", customer: "印尼", qty: 30, status: "生產", note: "", line: "機體" },
+      { duration: "5D", startDate: "11月23日", endDate: "11月27日", salesDate: "12月4日", woNo: "5120-20261104001", partNo: "CDR0175J12E", partName: "空壓機", spec: "DR-175-22,220V,50HZ, 1PH", customer: "印尼(12訂單)", qty: 144, status: "生產", note: "11/6發桶150", line: "整機" },
+      { duration: "2D", startDate: "11月30日", endDate: "12月1日", salesDate: "12月4日", woNo: "5120-20261104002", partNo: "CDR0175J12F", partName: "空壓機", spec: "DR-175-30L,50Hz,220V,1PH", customer: "印尼(12訂單)", qty: 40, status: "生產", note: "11/6發桶", line: "整機" },
+      { duration: "1D", startDate: "12月4日", endDate: "12月4日", salesDate: "12月10日", woNo: "5130-20261104001", partNo: "DS980544200", partName: "銅管組合", spec: "1/2\"X420LX0.8t", customer: "馬來", qty: 5, status: "完工", note: "", line: "零件" },
+      { duration: "1D", startDate: "12月4日", endDate: "12月4日", salesDate: "12月10日", woNo: "5130-20261117014", partNo: "DP51006230U", partName: "儲氣桶-抗菌", spec: "ATV-622-0(PVP-202)30L-焊螺絲", customer: "馬來", qty: 1, status: "待通知", note: "「配合機號7202871,製造日待國貿2024.06\n紙箱包裝", line: "儲氣桶" },
+      { duration: "2D", startDate: "12月2日", endDate: "12月3日", salesDate: "12月10日", woNo: "5120-20261020010", partNo: "CDR0115J147", partName: "空壓機組合", spec: "DR-115-22L,240V/50HZ,抗菌桶,10412", customer: "馬來", qty: 54, status: "生產", note: "「桶証與桶牌需同月份,抗菌桶\n10/27發桶,11/12國貿通知安全閥改 DS690002E08\n「棧板*2,其餘散裝", line: "整機" },
+      { duration: "1D", startDate: "12月4日", endDate: "12月4日", salesDate: "12月10日", woNo: "5120-20261020011", partNo: "CDR0115J148", partName: "空壓機組合", spec: "DR-115-30L,240V/50HZ,抗菌桶,10412", customer: "馬來", qty: 8, status: "生產", note: "「桶証與桶牌需同月份,抗菌桶\n10/27發桶,11/12國貿通知安全閥改 DS690002E08", line: "整機" },
+      { duration: "1D", startDate: "12月4日", endDate: "12月4日", salesDate: "12月10日", woNo: "5120-20261021008", partNo: "CPVP202J149", partName: "整機組合", spec: "PV-202-30L,230V/50HZ,抗菌桶", customer: "馬來", qty: 6, status: "生產", note: "「桶証與桶牌需同月份,抗菌桶\n「桶身領DC51010500N*1雷割\n10/27發桶 / 紙箱包裝", line: "整機" },
+      { duration: "2D", startDate: "12月7日", endDate: "12月8日", salesDate: "12月11日", woNo: "5120-20260901003", partNo: "CDRS210Y010", partName: "空壓機整機組合", spec: "DRS-210-39T,60HZ,110V(保護器),雙機體", customer: "內銷", qty: 30, status: "生產", note: "桶ok\n「欠高壓軟管12/4", line: "整機" },
+      { duration: "7D", startDate: "12月9日", endDate: "12月17日", salesDate: "12月23日", woNo: "5120-20260701004", partNo: "CDRS210J134", partName: "空壓機整機組合", spec: "DRS-210-30,50/60HZ,100V(保險絲)", customer: "日本(FLOBAL)", qty: 120, status: "生產", note: "桶身用DC5101120A0", line: "整機" },
+      { duration: "2D", startDate: "12月18日", endDate: "12月21日", salesDate: "12月23日", woNo: "5120-20260701005", partNo: "CDRS210J136", partName: "空壓機整機組合", spec: "DRS-210-39T,50/60HZ, 100V,雙機(日本10336)", customer: "日本(FLOBAL)", qty: 28, status: "生產", note: "「桶身用DC5101120A0", line: "整機" },
+      { duration: "", startDate: "", endDate: "", salesDate: "", woNo: "", partNo: "CDRS207J913", partName: "空壓機整機組合", spec: "DRS-207-22,230V/50HZ,CE灰色桶(客供貼紙)", customer: "新益隆", qty: 66, status: "待通知", note: "生產 待通知\n(桶顏色7035),需請購粉料及提供客供貼紙", line: "整機" },
+      { duration: "", startDate: "12月31日", endDate: "", salesDate: "12月31日", woNo: "5120-20260710012", partNo: "CDRS210J913", partName: "空壓機整機組合", spec: "DRS-210-39,230V/50HZ,CE灰色桶(客供貼紙)", customer: "新益隆", qty: 28, status: "待通知生產", note: "客戶要驗機\n待通知生產\n(桶顏色7035),需請購粉料及提供客供貼紙", line: "整機" },
+      { duration: "", startDate: "12月31日", endDate: "", salesDate: "12月31日", woNo: "", partNo: "CDRS215J12G", partName: "空壓機整機組合", spec: "DRS-215-50,220V,50HZ(,印尼10214)(裝過載保護器)", customer: "印尼", qty: 10, status: "暫停待通知", note: "「客戶要驗機\n暫停待通知\n7/15發桶11pcs=>8/17國貿通知客戶取消", line: "整機" },
+      { duration: "", startDate: "12月31日", endDate: "", salesDate: "12月31日", woNo: "5120-20260205001", partNo: "CDR0175J12E", partName: "空壓機", spec: "DR-175-22,220V,50HZ, 1PH", customer: "印尼(2026年度)", qty: 86, status: "待通知", note: "", line: "整機" },
+      { duration: "", startDate: "12月31日", endDate: "", salesDate: "12月31日", woNo: "5120-20260205002", partNo: "CDR0175J12F", partName: "空壓機", spec: "DR-175-30L,50Hz,220V,1PH", customer: "印尼(2026年度)", qty: 136, status: "待通知", note: "", line: "整機" },
+      { duration: "56D", startDate: "8月15日", endDate: "11月6日", salesDate: "12月31日", woNo: "5130-20260610006", partNo: "DP250169000", partName: "連桿", spec: "CR-69L-0", customer: "加工", qty: 2000, status: "生產", note: "10/15改11/6,數量先改500=>10/21完成500", line: "零件" },
+      { duration: "61D", startDate: "8月10日", endDate: "11月6日", salesDate: "12月31日", woNo: "5130-20260703003", partNo: "DP310169010", partName: "曲軸", spec: "CS-69L-22", customer: "加工", qty: 2072, status: "生產", note: "10/15改11/6,數量先改500要用料籠=>11/5里歐485", line: "零件" },
+      { duration: "36D", startDate: "9月14日", endDate: "11月6日", salesDate: "11月6日", woNo: "5130-20260810007", partNo: "DP251069000", partName: "連桿頂蓋", spec: "CR-69L-0 (DR-175)", customer: "加工", qty: 2123, status: "委外中", note: "10/15改11/6 數量先改500=>11/3天朗*500=>11/18 1623pcs", line: "零件" },
+      { duration: "29D", startDate: "9月23日", endDate: "11月6日", salesDate: "12月16日", woNo: "5130-20260902013", partNo: "DP9924AY121", partName: "風扇固定座", spec: "ProV2000", customer: "加工", qty: 20, status: "投單", note: "", line: "零件" },
+      { duration: "16D", startDate: "10月1日", endDate: "", salesDate: "", woNo: "", partNo: "110162050", partName: "氣缸", spec: "CD-622-0 (PVP-202/50HZ)", customer: "加工", qty: 500, status: "生產", note: "11/5天朗110pcs", line: "零件" },
+      { duration: "", startDate: "", endDate: "", salesDate: "", woNo: "", partNo: "360162000", partName: "曲軸箱", spec: "CC-622-0(白色)(PVP-202)", customer: "加工", qty: 300, status: "生產", note: "12/4(待驗)", line: "零件" },
+      { duration: "", startDate: "", endDate: "", salesDate: "", woNo: "", partNo: "AD202Y003", partName: "", spec: "", customer: "內銷(備庫)", qty: 1, status: "待通知", note: "", line: "整機" }
+    ];
+
+    let holidays = loadHolidays();
+    let rows = loadData();
+    let sortDir = "asc";
+    let activeImportTab = "file";
+
+    const schedBody = document.getElementById("schedBody");
+    const sheetDate = document.getElementById("sheetDate");
+    const saveStatus = document.getElementById("saveStatus");
+    const kwInput = document.getElementById("kwInput");
+    const lineSel = document.getElementById("lineSel");
+    const statusSel = document.getElementById("statusSel");
+    const sortDirSel = document.getElementById("sortDirSel");
+    const startSortInd = document.getElementById("startSortInd");
+    const expIn = document.getElementById("expIn");
+    const actIn = document.getElementById("actIn");
+    const rateCell = document.getElementById("rateCell");
+    const signClerk = document.getElementById("signClerk");
+    const signLeader = document.getElementById("signLeader");
+    const signManager = document.getElementById("signManager");
+
+    const addDlg = document.getElementById("addDlg");
+    const addForm = document.getElementById("addForm");
+    const holidayDlg = document.getElementById("holidayDlg");
+    const holidayList = document.getElementById("holidayList");
+    const newHolidayDate = document.getElementById("newHolidayDate");
+    const newHolidayName = document.getElementById("newHolidayName");
+    const importDlg = document.getElementById("importDlg");
+    const importForm = document.getElementById("importForm");
+    const importFileInput = document.getElementById("importFileInput");
+    const importPasteText = document.getElementById("importPasteText");
+
+    function loadHolidays() {
+      try {
+        const raw = localStorage.getItem(HOLIDAY_STORAGE_KEY);
+        if (!raw) return structuredClone(DEFAULT_HOLIDAYS);
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : structuredClone(DEFAULT_HOLIDAYS);
+      } catch {
+        return structuredClone(DEFAULT_HOLIDAYS);
+      }
+    }
+
+    function saveHolidays() {
+      localStorage.setItem(HOLIDAY_STORAGE_KEY, JSON.stringify(holidays));
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("web_schedule_1111_2_v6");
+        if (!raw) return structuredClone(DEFAULT_ROWS);
+        const data = JSON.parse(raw);
+        return Array.isArray(data) ? data : structuredClone(DEFAULT_ROWS);
+      } catch {
+        return structuredClone(DEFAULT_ROWS);
+      }
+    }
+
+    function loadMeta() {
+      try {
+        const raw = localStorage.getItem(META_STORAGE_KEY) || localStorage.getItem("web_schedule_meta_v6");
+        if (!raw) return;
+        const meta = JSON.parse(raw);
+        if (meta.sheetDate !== undefined) sheetDate.value = meta.sheetDate;
+        if (meta.expIn !== undefined) expIn.value = meta.expIn;
+        if (meta.actIn !== undefined) actIn.value = meta.actIn;
+        if (meta.signClerk !== undefined) signClerk.innerText = meta.signClerk;
+        if (meta.signLeader !== undefined) signLeader.innerText = meta.signLeader;
+        if (meta.signManager !== undefined) signManager.innerText = meta.signManager;
+      } catch {}
+    }
+
+    function updateSaveIndicator(prefix = "已儲存") {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      const ss = String(now.getSeconds()).padStart(2, "0");
+      saveStatus.textContent = `（${prefix} ${hh}:${mm}:${ss}）`;
+    }
+
+    function saveAll(showToast = false) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+      localStorage.setItem(META_STORAGE_KEY, JSON.stringify({
+        sheetDate: sheetDate.value,
+        expIn: expIn.value,
+        actIn: actIn.value,
+        signClerk: signClerk.innerText.trim(),
+        signLeader: signLeader.innerText.trim(),
+        signManager: signManager.innerText.trim()
+      }));
+      recordSnapshot(showToast ? "手動儲存" : "自動儲存");
+      updateSaveIndicator(showToast ? "手動儲存成功" : "已自動儲存");
+      if (showToast) {
+        alert("目前排程資料、本週入庫台數與簽核欄位已完整儲存！");
+      }
+    }
+
+    function downloadScheduleJson() {
+      const payload = {
+        savedAt: new Date().toISOString(),
+        meta: {
+          sheetDate: sheetDate.value,
+          expIn: expIn.value,
+          actIn: actIn.value,
+          signClerk: signClerk.innerText.trim(),
+          signLeader: signLeader.innerText.trim(),
+          signManager: signManager.innerText.trim()
+        },
+        holidays,
+        rows
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeDate = (sheetDate.value || "排程").replaceAll("/", "-");
+      a.download = `生管排程表_${safeDate}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function esc(v) {
+      return String(v ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function parseDateValue(str) {
+      const s = String(str ?? "").trim();
+      if (!s) return null;
+
+      let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+      if (m) {
+        return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+      }
+
+      m = s.match(/^(\d{1,2})\s*月\s*(\d{1,2})\s*日?$/);
+      if (m) {
+        const month = Number(m[1]);
+        const day = Number(m[2]);
+        const year = month >= 8 ? 2026 : 2027;
+        return new Date(year, month - 1, day).getTime();
+      }
+
+      m = s.match(/^(\d{1,2})[-/](\d{1,2})$/);
+      if (m) {
+        const month = Number(m[1]);
+        const day = Number(m[2]);
+        const year = month >= 8 ? 2026 : 2027;
+        return new Date(year, month - 1, day).getTime();
+      }
+
+      const d = Date.parse(s);
+      return Number.isNaN(d) ? null : d;
+    }
+
+    function formatIsoLocal(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function toIsoDate(str) {
+      const ts = parseDateValue(str);
+      if (ts === null) return "";
+      return formatIsoLocal(new Date(ts));
+    }
+
+    function formatChineseDate(isoStr) {
+      if (!isoStr) return "";
+      const parts = isoStr.split("-");
+      if (parts.length !== 3) return isoStr;
+      return `${Number(parts[1])}月${Number(parts[2])}日`;
+    }
+
+    function calcDuration(startStr, endStr, fallbackDuration = "") {
+      const startTs = parseDateValue(startStr);
+      const endTs = parseDateValue(endStr);
+      if (startTs === null || endTs === null) {
+        return fallbackDuration || "";
+      }
+
+      const holidaySet = new Set(holidays.map((h) => h.date));
+      const sDate = new Date(startTs);
+      const eDate = new Date(endTs);
+      sDate.setHours(0, 0, 0, 0);
+      eDate.setHours(0, 0, 0, 0);
+
+      if (eDate.getTime() < sDate.getTime()) {
+        return "日期異常";
+      }
+
+      let workDays = 0;
+      const cur = new Date(sDate);
+      while (cur.getTime() <= eDate.getTime()) {
+        const dow = cur.getDay();
+        const iso = formatIsoLocal(cur);
+        if (dow !== 0 && dow !== 6 && !holidaySet.has(iso)) {
+          workDays++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      return `${workDays}D`;
+    }
+
+    function compareByStartDate(a, b) {
+      const ta = parseDateValue(a.startDate);
+      const tb = parseDateValue(b.startDate);
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return sortDir === "asc" ? (ta - tb) : (tb - ta);
+    }
+
+    function refreshRate() {
+      const exp = Number(expIn.value) || 0;
+      const act = Number(actIn.value) || 0;
+      rateCell.textContent = exp > 0 ? `${((act / exp) * 100).toFixed(1)}%` : "0.0%";
+    }
+
+    function normalizeRow(raw) {
+      const startDate = String(raw.startDate ?? "").trim();
+      const endDate = String(raw.endDate ?? "").trim();
+      const rawDur = String(raw.duration ?? "").trim();
+      return {
+        duration: calcDuration(startDate, endDate, rawDur),
+        startDate,
+        endDate,
+        salesDate: String(raw.salesDate ?? "").trim(),
+        woNo: String(raw.woNo ?? "").trim(),
+        partNo: String(raw.partNo ?? "").trim(),
+        partName: String(raw.partName ?? "").trim(),
+        spec: String(raw.spec ?? "").trim(),
+        customer: String(raw.customer ?? "").trim(),
+        qty: Number(String(raw.qty ?? 0).replaceAll(",", "")) || 0,
+        status: String(raw.status ?? "生產").trim(),
+        note: String(raw.note ?? "").trim(),
+        line: String(raw.line ?? "整機").trim() || "整機"
+      };
+    }
+
+    function parseDelimitedText(text) {
+      const cleanText = text.replace(/^\uFEFF/, "").trim();
+      if (!cleanText) return [];
+
+      const firstLine = cleanText.split(/\r?\n/)[0] || "";
+      const delimiter = firstLine.includes("\t") ? "\t" : ",";
+
+      const matrix = [];
+      let curRow = [];
+      let curCell = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < cleanText.length; i++) {
+        const ch = cleanText[i];
+        const next = cleanText[i + 1];
+
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            curCell += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            curCell += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === delimiter) {
+            curRow.push(curCell.trim());
+            curCell = "";
+          } else if (ch === "\n" || (ch === "\r" && next === "\n")) {
+            if (ch === "\r") i++;
+            curRow.push(curCell.trim());
+            if (curRow.some((c) => c !== "")) matrix.push(curRow);
+            curRow = [];
+            curCell = "";
+          } else {
+            curCell += ch;
+          }
+        }
+      }
+      if (curCell.length > 0 || curRow.length > 0) {
+        curRow.push(curCell.trim());
+        if (curRow.some((c) => c !== "")) matrix.push(curRow);
+      }
+
+      if (!matrix.length) return [];
+
+      const headJoined = matrix[0].join("");
+      const startRowIdx = (headJoined.includes("製令單號") || headJoined.includes("產品品號") || headJoined.includes("工期")) ? 1 : 0;
+
+      return matrix.slice(startRowIdx).map((cols) => normalizeRow({
+        duration: cols[0] ?? "",
+        startDate: cols[1] ?? "",
+        endDate: cols[2] ?? "",
+        salesDate: cols[3] ?? "",
+        woNo: cols[4] ?? "",
+        partNo: cols[5] ?? "",
+        partName: cols[6] ?? "",
+        spec: cols[7] ?? "",
+        customer: cols[8] ?? "",
+        qty: cols[9] ?? 0,
+        status: cols[10] ?? "生產",
+        note: cols[11] ?? "",
+        line: cols[12] ?? "整機"
+      }));
+    }
+
+    function exportCsv() {
+      const headers = ["工期", "開工日", "預計完工(入庫日)", "產銷日(銷貨日)", "製令單號", "產品品號", "品名", "規格", "客戶名稱", "預計產量", "現場進度", "備註", "線別"];
+      const csvCell = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+      const lines = [
+        headers.map(csvCell).join(","),
+        ...rows.map((r) => {
+          const dur = calcDuration(r.startDate, r.endDate, r.duration);
+          return [
+            dur, r.startDate, r.endDate, r.salesDate, r.woNo, r.partNo,
+            r.partName, r.spec, r.customer, r.qty, r.status, r.note, r.line
+          ].map(csvCell).join(",");
+        })
+      ];
+      const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "生管排程表.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function renderDateCell(idx, field, val) {
+      const iso = toIsoDate(val);
+      return `
+        <div class="date-edit-wrap">
+          <input
+            type="text"
+            class="date-text-input"
+            data-date-text="${field}"
+            data-i="${idx}"
+            value="${esc(val)}"
+            placeholder="輸入日期"
+          >
+          <input
+            type="date"
+            class="date-picker-mini"
+            data-date-picker="${field}"
+            data-i="${idx}"
+            value="${esc(iso)}"
+            title="點選日曆選擇日期"
+          >
+        </div>
+      `;
+    }
+
+    function render() {
+      sortDirSel.value = sortDir;
+      startSortInd.textContent = sortDir === "asc" ? "▲" : "▼";
+
+      const kw = kwInput.value.trim().toLowerCase();
+      const line = lineSel.value;
+      const st = statusSel.value;
+
+      const list = rows
+        .map((r, i) => {
+          const computedDur = calcDuration(r.startDate, r.endDate, r.duration);
+          r.duration = computedDur;
+          return { ...r, duration: computedDur, _i: i };
+        })
+        .filter((r) => {
+          if (line && r.line.trim() !== line) return false;
+          if (st && r.status.trim() !== st) return false;
+          if (kw) {
+            const text = `${r.woNo} ${r.partNo} ${r.partName} ${r.spec} ${r.customer} ${r.status} ${r.note} ${r.startDate} ${r.endDate} ${r.salesDate}`.toLowerCase();
+            if (!text.includes(kw)) return false;
+          }
+          return true;
+        })
+        .sort(compareByStartDate);
+
+      const sumQty = list.reduce((acc, r) => acc + (Number(r.qty) || 0), 0);
+      document.getElementById("cntCell").textContent = `${list.length} 筆`;
+      document.getElementById("sumCell").textContent = sumQty.toLocaleString();
+
+      schedBody.innerHTML = list.map((r) => {
+        const isWarn = r.note.includes("欠") || r.note.includes("取消") || r.note.includes("待驗");
+        const isErrDur = r.duration === "日期異常";
+        return `
+          <tr data-i="${r._i}">
+            <td class="tc dur-cell" style="${isErrDur ? "color:#dc2626;" : ""}" title="完工日減掉開工日（排除週末與國定假日）">${esc(r.duration)}</td>
+            <td class="tc">${renderDateCell(r._i, "startDate", r.startDate)}</td>
+            <td class="tc">${renderDateCell(r._i, "endDate", r.endDate)}</td>
+            <td class="tc">${renderDateCell(r._i, "salesDate", r.salesDate)}</td>
+            <td class="mono" data-locked-f="woNo">${esc(r.woNo)}</td>
+            <td class="mono" data-locked-f="partNo">${esc(r.partNo)}</td>
+            <td data-locked-f="partName">${esc(r.partName)}</td>
+            <td data-locked-f="spec">${esc(r.spec)}</td>
+            <td data-locked-f="customer">${esc(r.customer)}</td>
+            <td class="tr" data-locked-f="qty">${esc(r.qty)}</td>
+            <td class="tc">${StatusModule.renderCompactSelect(r._i, r.status)}</td>
+            <td>
+              <div class="note-area ${isWarn ? "note-warn" : ""}" contenteditable="true" data-f="note" title="點擊可直接修改備註">${esc(r.note)}</div>
+            </td>
+            <td class="tc" contenteditable="true" data-f="line">${esc(r.line)}</td>
+            <td class="tc no-print"><button class="btn-del" type="button" data-del="${r._i}" title="刪除">✕</button></td>
+          </tr>
+        `;
+      }).join("");
+
+      bindRowEvents();
+      refreshRate();
+    }
+
+    function bindRowEvents() {
+      StatusModule.bindEvents(schedBody, (rowIndex, newStatus) => {
+        rows[rowIndex].status = newStatus;
+        saveAll(false);
+        render();
+      });
+
+      schedBody.querySelectorAll("[data-date-text]").forEach((inp) => {
+        inp.addEventListener("change", () => {
+          const i = Number(inp.dataset.i);
+          const field = inp.dataset.dateText;
+          rows[i][field] = inp.value.trim();
+          rows[i].duration = calcDuration(rows[i].startDate, rows[i].endDate, rows[i].duration);
+          saveAll(false);
+          render();
+        });
+      });
+
+      schedBody.querySelectorAll("[data-date-picker]").forEach((picker) => {
+        picker.addEventListener("change", () => {
+          const i = Number(picker.dataset.i);
+          const field = picker.dataset.datePicker;
+          if (picker.value) {
+            rows[i][field] = formatChineseDate(picker.value);
+            rows[i].duration = calcDuration(rows[i].startDate, rows[i].endDate, rows[i].duration);
+            saveAll(false);
+            render();
+          }
+        });
+      });
+
+      schedBody.querySelectorAll("[contenteditable='true']").forEach((el) => {
+        el.addEventListener("blur", () => {
+          const i = Number(el.closest("tr").dataset.i);
+          const f = el.dataset.f;
+          const val = el.innerText.trim();
+          rows[i][f] = f === "qty" ? (Number(val.replaceAll(",", "")) || 0) : val;
+          saveAll(false);
+          render();
+        });
+      });
+
+      schedBody.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const i = Number(btn.dataset.del);
+          rows.splice(i, 1);
+          saveAll(false);
+          render();
+        });
+      });
+    }
+
+    function renderHolidayList() {
+      holidays.sort((a, b) => a.date.localeCompare(b.date));
+      holidayList.innerHTML = holidays.map((h, idx) => `
+        <span class="holiday-chip">
+          <strong>${esc(h.date)}</strong> ${esc(h.name || "國定假日")}
+          <button type="button" data-del-hol="${idx}" title="移除">✕</button>
+        </span>
+      `).join("");
+
+      holidayList.querySelectorAll("[data-del-hol]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.delHol);
+          holidays.splice(idx, 1);
+          saveHolidays();
+          renderHolidayList();
+          render();
+        });
+      });
+    }
+
+    const loadDlg = document.getElementById("loadDlg");
+    const localSavedInfo = document.getElementById("localSavedInfo");
+    const snapshotList = document.getElementById("snapshotList");
+    const quickJsonFileInput = document.getElementById("quickJsonFileInput");
+
+    function loadSnapshots() {
+      try {
+        const raw = localStorage.getItem(SNAPSHOT_STORAGE_KEY);
+        if (!raw) return [];
+        const list = JSON.parse(raw);
+        return Array.isArray(list) ? list : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveSnapshots(list) {
+      localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(list.slice(0, 30)));
+    }
+
+    function recordSnapshot(label = "儲存節點") {
+      const now = new Date();
+      const stamp = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+      const snap = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        timestamp: stamp,
+        label,
+        meta: {
+          sheetDate: sheetDate.value,
+          expIn: expIn.value,
+          actIn: actIn.value,
+          signClerk: signClerk.innerText.trim(),
+          signLeader: signLeader.innerText.trim(),
+          signManager: signManager.innerText.trim()
+        },
+        rows: structuredClone(rows)
+      };
+      const existing = loadSnapshots();
+      existing.unshift(snap);
+      saveSnapshots(existing);
+    }
+
+    function applySnapshot(snap) {
+      if (!snap || !Array.isArray(snap.rows)) return false;
+      rows = snap.rows.map(normalizeRow);
+      if (snap.meta) {
+        if (snap.meta.sheetDate !== undefined) sheetDate.value = snap.meta.sheetDate;
+        if (snap.meta.expIn !== undefined) expIn.value = snap.meta.expIn;
+        if (snap.meta.actIn !== undefined) actIn.value = snap.meta.actIn;
+        if (snap.meta.signClerk !== undefined) signClerk.innerText = snap.meta.signClerk;
+        if (snap.meta.signLeader !== undefined) signLeader.innerText = snap.meta.signLeader;
+        if (snap.meta.signManager !== undefined) signManager.innerText = snap.meta.signManager;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+      localStorage.setItem(META_STORAGE_KEY, JSON.stringify({
+        sheetDate: sheetDate.value,
+        expIn: expIn.value,
+        actIn: actIn.value,
+        signClerk: signClerk.innerText.trim(),
+        signLeader: signLeader.innerText.trim(),
+        signManager: signManager.innerText.trim()
+      }));
+      updateSaveIndicator(`已還原 ${snap.timestamp}`);
+      render();
+      return true;
+    }
+
+    function renderSnapshotNodes() {
+      const snaps = loadSnapshots();
+      if (!snaps.length) {
+        snapshotList.innerHTML = `<div class="import-help">尚無時間節點紀錄。每次儲存或按「💾 儲存目前排程」時會自動建立時間節點。</div>`;
+        return;
+      }
+      snapshotList.innerHTML = snaps.map((s, idx) => {
+        const cnt = Array.isArray(s.rows) ? s.rows.length : 0;
+        const dText = s.meta && s.meta.sheetDate ? `表單日期：${s.meta.sheetDate}` : "";
+        return `
+          <div class="snapshot-item">
+            <div class="snapshot-meta">
+              <span class="snapshot-time">${esc(s.timestamp)}（${esc(s.label || "節點")}）</span>
+              <span class="snapshot-sub">共 ${cnt} 筆${dText ? `・${esc(dText)}` : ""}</span>
+            </div>
+            <div class="snapshot-actions">
+              <button class="btn btn-primary" type="button" data-snap-load="${idx}">讀取</button>
+              <button class="btn" type="button" data-snap-del="${idx}" title="刪除此節點">✕</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      snapshotList.querySelectorAll("[data-snap-load]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.snapLoad);
+          const curSnaps = loadSnapshots();
+          if (applySnapshot(curSnaps[idx])) {
+            loadDlg.close();
+          }
+        });
+      });
+
+      snapshotList.querySelectorAll("[data-snap-del]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.snapDel);
+          const curSnaps = loadSnapshots();
+          curSnaps.splice(idx, 1);
+          saveSnapshots(curSnaps);
+          renderSnapshotNodes();
+        });
+      });
+    }
+
+    function applySavedPayload(payload) {
+      if (Array.isArray(payload)) {
+        rows = payload.map(normalizeRow);
+      } else if (payload && Array.isArray(payload.rows)) {
+        rows = payload.rows.map(normalizeRow);
+        if (payload.meta) {
+          if (payload.meta.sheetDate !== undefined) sheetDate.value = payload.meta.sheetDate;
+          if (payload.meta.expIn !== undefined) expIn.value = payload.meta.expIn;
+          if (payload.meta.actIn !== undefined) actIn.value = payload.meta.actIn;
+          if (payload.meta.signClerk !== undefined) signClerk.innerText = payload.meta.signClerk;
+          if (payload.meta.signLeader !== undefined) signLeader.innerText = payload.meta.signLeader;
+          if (payload.meta.signManager !== undefined) signManager.innerText = payload.meta.signManager;
+        }
+        if (Array.isArray(payload.holidays)) {
+          holidays = payload.holidays;
+          saveHolidays();
+        }
+      } else {
+        return false;
+      }
+      saveAll(false);
+      render();
+      return true;
+    }
+
+    document.getElementById("loadSavedBtn").addEventListener("click", () => {
+      const snaps = loadSnapshots();
+      localSavedInfo.innerHTML = `已建立 <strong>${snaps.length}</strong> 個時間節點（最多保留最近 30 筆）。點選任一時間節點的「<strong>讀取</strong>」即可立即還原該時點的排程。`;
+      renderSnapshotNodes();
+      loadDlg.showModal();
+    });
+
+    document.getElementById("restoreLocalBtn").addEventListener("click", () => {
+      rows = loadData();
+      loadMeta();
+      render();
+      updateSaveIndicator("已讀取瀏覽器排程");
+      loadDlg.close();
+    });
+
+    quickJsonFileInput.addEventListener("change", async () => {
+      const file = quickJsonFileInput.files && quickJsonFileInput.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        if (!applySavedPayload(parsed)) {
+          alert("JSON 檔案內容不包含有效的排程資料。");
+          return;
+        }
+        updateSaveIndicator("已讀取排程檔");
+        loadDlg.close();
+      } catch {
+        alert("無法解析此 JSON 檔案，請確認格式是否正確。");
+      } finally {
+        quickJsonFileInput.value = "";
+      }
+    });
+
+    document.getElementById("closeLoadBtn").addEventListener("click", () => loadDlg.close());
+    document.getElementById("cancelLoadBtn").addEventListener("click", () => loadDlg.close());
+
+    document.getElementById("saveNowBtn").addEventListener("click", () => saveAll(true));
+    document.getElementById("downloadJsonBtn").addEventListener("click", downloadScheduleJson);
+
+    document.getElementById("openHolidayBtn").addEventListener("click", () => {
+      newHolidayDate.value = "";
+      newHolidayName.value = "";
+      renderHolidayList();
+      holidayDlg.showModal();
+    });
+
+    document.getElementById("addHolidayBtn").addEventListener("click", () => {
+      const d = newHolidayDate.value;
+      if (!d) {
+        alert("請先選擇國定假日日期。");
+        return;
+      }
+      const name = newHolidayName.value.trim() || "國定假日";
+      if (!holidays.some((h) => h.date === d)) {
+        holidays.push({ date: d, name });
+        saveHolidays();
+        renderHolidayList();
+        render();
+      }
+      newHolidayDate.value = "";
+      newHolidayName.value = "";
+    });
+
+    document.getElementById("resetHolidayBtn").addEventListener("click", () => {
+      holidays = structuredClone(DEFAULT_HOLIDAYS);
+      saveHolidays();
+      renderHolidayList();
+      render();
+    });
+
+    document.getElementById("closeHolidayBtn").addEventListener("click", () => holidayDlg.close());
+    document.getElementById("doneHolidayBtn").addEventListener("click", () => {
+      holidayDlg.close();
+      render();
+    });
+
+    kwInput.addEventListener("input", render);
+    lineSel.addEventListener("change", render);
+    statusSel.addEventListener("change", render);
+    sortDirSel.addEventListener("change", () => {
+      sortDir = sortDirSel.value;
+      render();
+    });
+
+    document.getElementById("sortStartTh").addEventListener("click", () => {
+      sortDir = sortDir === "asc" ? "desc" : "asc";
+      render();
+    });
+
+    sheetDate.addEventListener("change", () => saveAll(false));
+    expIn.addEventListener("input", () => {
+      refreshRate();
+      saveAll(false);
+    });
+    actIn.addEventListener("input", () => {
+      refreshRate();
+      saveAll(false);
+    });
+    [signClerk, signLeader, signManager].forEach((cell) => {
+      cell.addEventListener("blur", () => saveAll(false));
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      kwInput.value = "";
+      lineSel.value = "";
+      statusSel.value = "";
+      sortDir = "asc";
+      render();
+    });
+
+    document.getElementById("addBtn").addEventListener("click", () => {
+      addForm.reset();
+      addDlg.showModal();
+    });
+
+    document.getElementById("closeDlgBtn").addEventListener("click", () => addDlg.close());
+    document.getElementById("cancelDlgBtn").addEventListener("click", () => addDlg.close());
+
+    addForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(addForm);
+      rows.unshift(normalizeRow({
+        startDate: fd.get("startDate"),
+        endDate: fd.get("endDate"),
+        salesDate: fd.get("salesDate"),
+        woNo: fd.get("woNo"),
+        partNo: fd.get("partNo"),
+        partName: fd.get("partName"),
+        spec: fd.get("spec"),
+        customer: fd.get("customer"),
+        qty: fd.get("qty"),
+        status: fd.get("status"),
+        note: fd.get("note"),
+        line: fd.get("line")
+      }));
+      saveAll(false);
+      addDlg.close();
+      render();
+    });
+
+    const tabFileBtn = document.getElementById("tabFileBtn");
+    const tabPasteBtn = document.getElementById("tabPasteBtn");
+    const panelFile = document.getElementById("panelFile");
+    const panelPaste = document.getElementById("panelPaste");
+
+    function setImportTab(tab) {
+      activeImportTab = tab;
+      tabFileBtn.classList.toggle("active", tab === "file");
+      tabPasteBtn.classList.toggle("active", tab === "paste");
+      panelFile.classList.toggle("active", tab === "file");
+      panelPaste.classList.toggle("active", tab === "paste");
+    }
+
+    tabFileBtn.addEventListener("click", () => setImportTab("file"));
+    tabPasteBtn.addEventListener("click", () => setImportTab("paste"));
+
+    document.getElementById("openImportBtn").addEventListener("click", () => {
+      importFileInput.value = "";
+      importPasteText.value = "";
+      setImportTab("file");
+      importDlg.showModal();
+    });
+
+    document.getElementById("closeImportBtn").addEventListener("click", () => importDlg.close());
+    document.getElementById("cancelImportBtn").addEventListener("click", () => importDlg.close());
+
+    importForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      let importedRows = [];
+
+      if (activeImportTab === "file") {
+        const file = importFileInput.files && importFileInput.files[0];
+        if (!file) {
+          alert("請先選擇要匯入的 CSV 或 JSON 檔案。");
+          return;
+        }
+        const text = await file.text();
+        if (file.name.toLowerCase().endsWith(".json")) {
+          try {
+            const parsed = JSON.parse(text);
+            const list = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.rows) ? parsed.rows : []);
+            importedRows = list.map(normalizeRow);
+            if (parsed.meta) {
+              if (parsed.meta.sheetDate !== undefined) sheetDate.value = parsed.meta.sheetDate;
+              if (parsed.meta.expIn !== undefined) expIn.value = parsed.meta.expIn;
+              if (parsed.meta.actIn !== undefined) actIn.value = parsed.meta.actIn;
+              if (parsed.meta.signClerk !== undefined) signClerk.innerText = parsed.meta.signClerk;
+              if (parsed.meta.signLeader !== undefined) signLeader.innerText = parsed.meta.signLeader;
+              if (parsed.meta.signManager !== undefined) signManager.innerText = parsed.meta.signManager;
+            }
+          } catch {
+            alert("JSON 檔案格式不正確。");
+            return;
+          }
+        } else {
+          importedRows = parseDelimitedText(text);
+        }
+      } else {
+        const rawText = importPasteText.value.trim();
+        if (!rawText) {
+          alert("請先貼上 CSV 或 Excel 複製的排程資料。");
+          return;
+        }
+        importedRows = parseDelimitedText(rawText);
+      }
+
+      if (!importedRows.length) {
+        alert("找不到可匯入的有效排程列。");
+        return;
+      }
+
+      const mode = importForm.querySelector('input[name="importMode"]:checked').value;
+      if (mode === "replace") {
+        rows = importedRows;
+      } else {
+        rows = [...rows, ...importedRows];
+      }
+
+      saveAll(false);
+      importDlg.close();
+      render();
+      alert(`已成功匯入 ${importedRows.length} 筆排程資料。`);
+    });
+
+    document.getElementById("exportCsvBtn").addEventListener("click", exportCsv);
+
+    loadMeta();
+    render();
+  </script>
+</body>
+</html>
